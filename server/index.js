@@ -1,5 +1,7 @@
 const Http = require('http'),
   fs = require('fs'),
+  cheerio = require('cheerio'),
+  request = require('request'),
   IOServer = require('socket.io'),
   JWT = require('jsonwebtoken'),
   Chance = require('chance').Chance(),
@@ -112,6 +114,10 @@ function router(req, res) {
     case '/operator.js':
       staticPage = fs.readFileSync(__dirname + '/../client/operator.js').toString();
       break;
+    case '/presentation':
+      fetchPresentation(res);
+      return;
+      break;
     default:
       staticPage = fs.readFileSync(__dirname + '/../client/index.html').toString();
   }
@@ -138,4 +144,45 @@ function generateToken (res, operator) {
     'Content-Length': Buffer.byteLength(token)
   });
   res.end(token);
+}
+
+function fetchPresentation (res) {
+
+  console.log('starting fetching wikipedia article');
+
+  request('https://de.wikipedia.org/wiki/Spezial:Zufällige_Seite?printable=yes', function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+
+      let $ = cheerio.load(body);
+
+      try {
+
+        const title = $('h1#firstHeading').text();
+
+        let cover_img = 'http:' + $('.image img')[0].attribs.src;
+        cover_img = cover_img.replace(/\d+px/, '1000px');
+
+        request(cover_img, (error, response, body) => {
+          if (error || response.statusCode !== 200) return fetchPresentation();
+
+          const intro = $('p', '#mw-content-text').slice(0,1).text();
+
+
+          return res.end(JSON.stringify({
+            title: title,
+            intro: intro,
+            cover_img: cover_img
+          }));
+          
+        });
+      } catch (e) {
+        console.log(e);
+        return fetchPresentation();
+      }
+
+
+
+    }
+  })
+
 }
