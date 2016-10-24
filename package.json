@@ -1,0 +1,16 @@
+{
+  "name": "ComputerBoss",
+  "version": "0.0.0",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "author": "Simon Reinsperger",
+  "license": "MIT",
+  "dependencies": {
+    "chance": "^1.0.4",
+    "jsonwebtoken": "^7.1.9",
+    "socket.io": "^1.5.1",
+    "socketio-jwt": "^4.5.0"
+  }
+}
