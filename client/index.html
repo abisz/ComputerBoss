@@ -6,13 +6,22 @@
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>ComputerBoss</title>
+
+  <style>
+    .hidden {
+      display: none;
+    }
+
+  </style>
 </head>
 <body>
 This is your Boss!
 
 <p id="output"></p>
 
-<button onClick="startAudio(event)" id="toggleSound">Start/Stop Peep</button>
+<button id="button-start" onClick="startPresentation()">Start Presentation</button>
+
+<!--<button onClick="startAudio(event)" id="toggleSound">Start/Stop Peep</button>-->
 
 <!-- SocketIO Client library -->
 <script src="/socket.io/socket.io.js"></script>

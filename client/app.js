@@ -2,26 +2,52 @@ console.log('app.js loaded');
 
 var peep = new PeepGenerator();
 
+var socket;
+var ouput = document.getElementById('output');
+var startButton = document.getElementById('button-start');
+
+peep.init();
+
 function socketIO(token) {
-  var socket = io.connect('http://localhost:8000', {
+  socket = io.connect('http://localhost:8000', {
     query: 'token=' + token
   });
 
   socket.on('connect', function () {
-    console.log('connection');
-    logScreen('Connection!');
-    socket.send('Hello');
+     console.log('Connected');
   });
 
-  socket.on('message', logScreen);
+  socket.on('next_task', updateScreen);
 
-  var ouput = document.getElementById('output');
+  socket.on('no_more_tasks', reset);
 
-  function logScreen(text) {
-    var date = new Date().toISOString(),
-      line = date + ' ' + text + '<br/>';
+  function updateScreen (task) {
 
-    output.innerHTML = line + output.innerHTML;
+    console.log('update Screen', task);
+
+    peep.startPeep(1400);
+
+    var text;
+
+    if (task) {
+      switch (task.type) {
+        case 'read':
+            text = 'Lies laut vor:\n' + task.msg;
+          break;
+        case 'click':
+            text = 'Klicke auf die nächste Folie!';
+          break;
+
+      }
+    output.innerHTML = 'Anweisung:\n' + text;
+    }
+  }
+
+  function reset () {
+    peep.stopPeep();
+
+    output.innerHTML = '';
+    startButton.className = '';
   }
 }
 
@@ -35,17 +61,7 @@ function login(){
 }
 login();
 
-var toggle = true;
-
-function startAudio (e) {
-  peep.init();
-
-  if (toggle) {
-    peep.startPeep(1400);
-    toggle = false;
-  } else {
-    peep.stopPeep();
-    toggle = true;
-  }
-
+function startPresentation () {
+  socket.emit('start_presentation');
+  startButton.className = 'hidden';
 }

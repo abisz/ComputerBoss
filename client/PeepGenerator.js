@@ -2,8 +2,6 @@ function PeepGenerator () {
 
 }
 
-// var context, osc;
-
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 // TODO: why can't this be an attribute from PeepGenerator?
 context = new AudioContext();
@@ -15,6 +13,9 @@ PeepGenerator.prototype.init = function () {
 };
 
 PeepGenerator.prototype.startPeep = function (freq) {
+
+  if (this.oscillator) this.stopPeep();
+
   this.oscillator = context.createOscillator();
 
   this.oscillator.frequency.value = freq;
