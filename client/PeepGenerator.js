@@ -25,9 +25,20 @@ PeepGenerator.prototype.startPeep = function (freq) {
   this.gain.gain.value = 0;
 
   var that = this;
-  this.increaseInterval = setInterval(function () {
-    that.increaseVolume(1);
-  }, 100);
+
+  this.puffer = 0;
+
+  if ( ! this.increaseInterval ) {
+
+    this.increaseInterval = setInterval(function () {
+      if (that.puffer < (10 * 20)) {
+        that.puffer++;
+      } else {
+        that.increaseVolume(1);
+      }
+
+    }, 100);
+  }
 
   // this.oscillator.connect(context.destination);
   this.oscillator.connect(this.gain);
@@ -37,7 +48,10 @@ PeepGenerator.prototype.startPeep = function (freq) {
 PeepGenerator.prototype.stopPeep = function () {
   this.gain.disconnect(context.destination);
   this.oscillator = null;
-  clearInterval(this.increaseInterval);
+};
+
+PeepGenerator.prototype.setVolume = function (v) {
+  this.gain.gain.value = v;
 };
 
 PeepGenerator.prototype.increaseVolume = function (d) {

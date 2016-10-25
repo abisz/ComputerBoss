@@ -14,22 +14,10 @@ const JWT_SECRET = 'my dirty little secret',
 
 const MINIMUM_CHAPTERS = 5;
 
-const TASKS = [
-  {
-    type: 'read',
-    msg: 'Some Text to read. Please'
-  },
-  {
-    type: 'click'
-  },
-  {
-    type: 'read',
-    msg: 'That was the presentation'
-  }
-];
-
 let task_counter = 0,
-  presentation_started = false;
+  presentation_started = false,
+  chapters,
+  nextClick;
 
 // SERVER
 server = Http.createServer(router);
@@ -42,7 +30,7 @@ server.listen(PORT, () => {
 // SOCKET
 const io = new IOServer(server);
 
-io.use(SocketIOJWT.authorize({secret: JWT_SECRET, handshake:true}));
+io.use(SocketIOJWT.authorize({secret: JWT_SECRET, handshake: true}));
 
 io.on('connection', (socket) => {
 
@@ -54,38 +42,65 @@ io.on('connection', (socket) => {
   // var room = operator ? OPERATION_ROOM : ROOM;
   var room = ROOM;
 
-  socket.join( room, function (error) {
-    if(error) return console.log(error);
+  socket.join(room, function (error) {
+    if (error) return console.log(error);
     console.log('Joined room!');
   });
 
   // Socket Events
   socket.on('start_presentation', (msg) => {
-    task_counter = 0;
 
     presentation_started = true;
 
-    io.sockets.in(ROOM).emit('next_task', TASKS[task_counter]);
-    io.sockets.in(ROOM).emit('presentation_started');
+    io.sockets.in(ROOM).emit('presentation_loading');
 
-    task_counter++;
+    fetchPresentation((config) => {
 
-    fetchPresentation( (config) => {
+      task_counter = 0;
 
-        io.sockets.in(ROOM).emit('presentation_config', config);
+      chapters = config.chapters;
+
+      nextClick = true;
+
+      io.sockets.in(ROOM).emit('presentation_config', config);
+      io.sockets.in(ROOM).emit('next_task', {
+        type: 'read',
+        msg: config.intro
       });
+      io.sockets.in(ROOM).emit('presentation_started');
+    });
   });
 
   socket.on('task_done', (msg) => {
-    if ( ! presentation_started ) {
+    if (!presentation_started) {
+
       io.sockets.in(ROOM).emit('presentation_didnt_start');
-    } else if (task_counter >= TASKS.length) {
+
+    } else if (task_counter >= chapters.length) {
+
       io.sockets.in(ROOM).emit('no_more_tasks');
       presentation_started = false;
+
     } else {
-      const task = TASKS[task_counter];
-      io.sockets.in(ROOM).emit('next_task', task);
-      task_counter++;
+
+      if (nextClick) {
+        nextClick = false;
+
+        io.sockets.in(ROOM).emit('next_task', {
+          type: 'click'
+        });
+
+      } else {
+        nextClick = true;
+
+        io.sockets.in(ROOM).emit('next_task', {
+          type: 'read',
+          msg: chapters[task_counter].content
+        });
+
+        task_counter++;
+      }
+
     }
 
   });
@@ -122,9 +137,9 @@ function router(req, res) {
       staticPage = fs.readFileSync(__dirname + '/../client/operator.js').toString();
       break;
     case '/getPresentation':
-      fetchPresentation( (config ) => {
-          return res.end(JSON.stringify(config));
-        });
+      fetchPresentation((config) => {
+        return res.end(JSON.stringify(config));
+      });
       return;
     case '/presentation':
       staticPage = fs.readFileSync(__dirname + '/../client/presentation.html');
@@ -135,7 +150,7 @@ function router(req, res) {
     default:
       staticPage = fs.readFileSync(__dirname + '/../client/index.html').toString();
   }
-  
+
   res.writeHead(200, {
     'Content-Type': 'text/html',
     'Content-Length': Buffer.byteLength(staticPage)
@@ -145,7 +160,7 @@ function router(req, res) {
 }
 
 // JWT
-function generateToken (res, operator) {
+function generateToken(res, operator) {
   var payload = {
       email: Chance.email(),
       name: Chance.first() + ' ' + Chance.last(),
@@ -160,7 +175,7 @@ function generateToken (res, operator) {
   res.end(token);
 }
 
-function fetchPresentation (cb) {
+function fetchPresentation(cb) {
 
   console.log('starting fetching wikipedia article');
 
@@ -182,9 +197,9 @@ function fetchPresentation (cb) {
         request(cover_img, (error, response, body) => {
           if (error || response.statusCode !== 200) return fetchPresentation(cb);
 
-          const intro = $('p:not(.noexcerpt)', '#mw-content-text').slice(0,1).text();
+          const intro = $('p:not(.noexcerpt)', '#mw-content-text').slice(0, 1).text();
 
-          const chaptersRaw = $('.mw-headline', 'h2').map( (i, e) => {
+          const chaptersRaw = $('.mw-headline', 'h2').map((i, e) => {
             return $(e).text();
             // console.log(e.text());
             // chaptersRaw[i] = $(e);
@@ -202,16 +217,16 @@ function fetchPresentation (cb) {
 
             let content;
 
-            content = $('.mw-headline', 'h2').slice(i, i+1).parent().next('p').text();
+            content = $('.mw-headline', 'h2').slice(i, i + 1).parent().next('p').text();
 
-            if ($('.mw-headline', 'h2').slice(i, i+1).parent().next().is('ul')) {
+            if ($('.mw-headline', 'h2').slice(i, i + 1).parent().next().is('ul')) {
               console.log('ul');
               const li = $('.mw-headline', 'h2')
-                .slice(i, i+1)
+                .slice(i, i + 1)
                 .parent()
                 .next('ul')
                 .children('li')
-                .map( (i, e) =>  $(e).text() );
+                .map((i, e) => $(e).text());
 
               content = [];
               for (let j = 0; j < li.length; j++) {
@@ -221,7 +236,7 @@ function fetchPresentation (cb) {
 
             console.log(typeof content);
 
-            if (typeof content !== 'string' || ! content) {
+            if (typeof content !== 'string' || !content) {
               console.log('Removed chapter:', chaptersRaw[i]);
               // let counter = 0;
               // while ( counter < 4) {
@@ -264,12 +279,7 @@ function fetchPresentation (cb) {
         // console.log(e);
         return fetchPresentation(cb);
       }
-
-
-
     }
   });
-
-
 
 }

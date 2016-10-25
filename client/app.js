@@ -6,8 +6,9 @@ var socket;
 var ouput = document.getElementById('output');
 var startButton = document.getElementById('button-start');
 
-// var URL = 'https://12259e96.ngrok.io';
-var URL = 'localhost:8000';
+var URL = 'https://83c65cf1.ngrok.io';
+// var URL = 'localhost:8000';
+
 peep.init();
 
 function socketIO(token) {
@@ -31,24 +32,26 @@ function socketIO(token) {
 
     var text;
 
+    console.log(task);
+
     if (task) {
       switch (task.type) {
         case 'read':
-            text = 'Lies laut vor:\n' + task.msg;
+            text = '<h2>Präsentiere:</h2><p>' + task.msg + '</p>';
           break;
         case 'click':
-            text = 'Klicke auf die nächste Folie!';
+            text = '<h2>Gehe zur nächsten Folie°</h2>';
           break;
 
       }
-    output.innerHTML = 'Anweisung:\n' + text;
+    output.innerHTML = text;
     }
   }
 
   function reset () {
     peep.stopPeep();
 
-    output.innerHTML = '';
+    output.innerHTML = 'Klicke zur nächsten Folie und bedanke dich!';
     startButton.className = '';
   }
 }

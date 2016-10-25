@@ -1,7 +1,7 @@
 console.log('presentation.js loaded');
 
-// var URL = 'https://12259e96.ngrok.io';
-var URL = 'localhost:8000';
+var URL = 'https://83c65cf1.ngrok.io';
+// var URL = 'localhost:8000';
 
 var currentPage = -1;
 var config;
@@ -20,7 +20,7 @@ function socketIO(token) {
     console.log('Connected');
   });
 
-  socket.on('presentation_started', () => {
+  socket.on('presentation_loading', () => {
     statusLine.innerHTML = 'Presentation is loading...';
   });
 
@@ -74,7 +74,7 @@ function updatePresentation () {
     var chapter = config.chapters[currentPage];
     title.innerHTML = chapter.title;
     backgroundImage.className = 'hidden';
-    text.innerHTML = chapter.content;
+    text.innerHTML = chapter.content.replace(/\[\d+\]/g, '');
   }
 
 }
