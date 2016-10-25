@@ -12,6 +12,8 @@ const JWT_SECRET = 'my dirty little secret',
   OPERATION_ROOM = 'operation',
   ROOM = 'room';
 
+const MINIMUM_CHAPTERS = 5;
+
 const TASKS = [
   {
     type: 'read',
@@ -67,6 +69,11 @@ io.on('connection', (socket) => {
     io.sockets.in(ROOM).emit('presentation_started');
 
     task_counter++;
+
+    fetchPresentation( (config) => {
+
+        io.sockets.in(ROOM).emit('presentation_config', config);
+      });
   });
 
   socket.on('task_done', (msg) => {
@@ -114,9 +121,16 @@ function router(req, res) {
     case '/operator.js':
       staticPage = fs.readFileSync(__dirname + '/../client/operator.js').toString();
       break;
-    case '/presentation':
-      fetchPresentation(res);
+    case '/getPresentation':
+      fetchPresentation( (config ) => {
+          return res.end(JSON.stringify(config));
+        });
       return;
+    case '/presentation':
+      staticPage = fs.readFileSync(__dirname + '/../client/presentation.html');
+      break;
+    case '/presentation.js':
+      staticPage = fs.readFileSync(__dirname + '/../client/presentation.js');
       break;
     default:
       staticPage = fs.readFileSync(__dirname + '/../client/index.html').toString();
@@ -146,11 +160,14 @@ function generateToken (res, operator) {
   res.end(token);
 }
 
-function fetchPresentation (res) {
+function fetchPresentation (cb) {
 
   console.log('starting fetching wikipedia article');
 
-  request('https://de.wikipedia.org/wiki/Spezial:Zufällige_Seite?printable=yes', function (error, response, body) {
+  const url = 'https://de.wikipedia.org/wiki/Spezial:Zufällige_Seite?printable=yes';
+  // const url = 'https://de.wikipedia.org/w/index.php?title=Quendel-Seide&printable=yes';
+
+  request(url, function (error, response, body) {
     if (!error && response.statusCode == 200) {
 
       let $ = cheerio.load(body);
@@ -163,26 +180,96 @@ function fetchPresentation (res) {
         cover_img = cover_img.replace(/\d+px/, '1000px');
 
         request(cover_img, (error, response, body) => {
-          if (error || response.statusCode !== 200) return fetchPresentation();
+          if (error || response.statusCode !== 200) return fetchPresentation(cb);
 
-          const intro = $('p', '#mw-content-text').slice(0,1).text();
+          const intro = $('p:not(.noexcerpt)', '#mw-content-text').slice(0,1).text();
 
+          const chaptersRaw = $('.mw-headline', 'h2').map( (i, e) => {
+            return $(e).text();
+            // console.log(e.text());
+            // chaptersRaw[i] = $(e);
+          });
 
-          return res.end(JSON.stringify({
+          console.log('chaptersRaw:', chaptersRaw.length);
+
+          if (chaptersRaw.length < MINIMUM_CHAPTERS) return fetchPresentation(cb);
+
+          let chapters = [];
+
+          for (let i = 0; i < chaptersRaw.length; i++) {
+
+            console.log(chaptersRaw[i]);
+
+            let content;
+
+            content = $('.mw-headline', 'h2').slice(i, i+1).parent().next('p').text();
+
+            if ($('.mw-headline', 'h2').slice(i, i+1).parent().next().is('ul')) {
+              console.log('ul');
+              const li = $('.mw-headline', 'h2')
+                .slice(i, i+1)
+                .parent()
+                .next('ul')
+                .children('li')
+                .map( (i, e) =>  $(e).text() );
+
+              content = [];
+              for (let j = 0; j < li.length; j++) {
+                content.push(li[j]);
+              }
+            }
+
+            console.log(typeof content);
+
+            if (typeof content !== 'string' || ! content) {
+              console.log('Removed chapter:', chaptersRaw[i]);
+              // let counter = 0;
+              // while ( counter < 4) {
+              //   console.log('no content');
+              //   content = $('.mw-headline', 'h2').slice(i, i+1).parent().find('p').slice(0,1).text();//.next().next('p').tex();
+              //
+              //   console.log('CONTNENT:', content);
+              //
+              //   if ( ! content.next().is('p') ) {
+              //     for (let k = 0; k < counter; k++) {
+              //       console.log('next');
+              //       content = content.next();
+              //     }
+              //   } else {
+              //     console.log('success');
+              //     content = $('.mw-headline', 'h2').slice(i, i+1).parent().next().next('p').text();
+              //     break;
+              //   }
+              //
+              //   counter++;
+              // }
+            } else {
+              chapters.push({
+                title: chaptersRaw[i],
+                content: content
+              })
+            }
+          }
+
+          return cb({
             title: title,
             intro: intro,
-            cover_img: cover_img
-          }));
-          
+            cover_img: cover_img,
+            chapters: chapters
+          });
+
         });
       } catch (e) {
-        console.log(e);
-        return fetchPresentation();
+        console.log('no attribs');
+        // console.log(e);
+        return fetchPresentation(cb);
       }
 
 
 
     }
-  })
+  });
+
+
 
 }

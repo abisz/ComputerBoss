@@ -6,10 +6,12 @@ var socket;
 var ouput = document.getElementById('output');
 var startButton = document.getElementById('button-start');
 
+// var URL = 'https://12259e96.ngrok.io';
+var URL = 'localhost:8000';
 peep.init();
 
 function socketIO(token) {
-  socket = io.connect('http://localhost:8000', {
+  socket = io.connect(URL, {
     query: 'token=' + token
   });
 
