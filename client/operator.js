@@ -2,8 +2,8 @@ console.log('Operation script loaded');
 
 var socket;
 
-// var URL = 'localhost:8000';
-var URL = 'https://83c65cf1.ngrok.io';
+var URL = 'localhost:8000';
+// var URL = 'https://83c65cf1.ngrok.io';
 
 
 function socketIO(token) {

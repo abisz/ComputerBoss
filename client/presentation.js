@@ -1,7 +1,7 @@
 console.log('presentation.js loaded');
 
-var URL = 'https://83c65cf1.ngrok.io';
-// var URL = 'localhost:8000';
+// var URL = 'https://83c65cf1.ngrok.io';
+var URL = 'localhost:8000';
 
 var currentPage = -1;
 var config;

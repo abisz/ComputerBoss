@@ -6,8 +6,8 @@ var socket;
 var ouput = document.getElementById('output');
 var startButton = document.getElementById('button-start');
 
-var URL = 'https://83c65cf1.ngrok.io';
-// var URL = 'localhost:8000';
+// var URL = 'https://83c65cf1.ngrok.io';
+var URL = 'localhost:8000';
 
 peep.init();
 
@@ -28,7 +28,7 @@ function socketIO(token) {
 
     console.log('update Screen', task);
 
-    peep.startPeep(1400);
+    peep.startPeep(4000);
 
     var text;
 
